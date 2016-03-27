@@ -1,66 +1,40 @@
-(ns batch-consumer.core
-  (require [clj-time.core :as t]))
+(ns batch-consumer.core)
 
 
-;; stream->batch handler with timeout and max-size
-;; single-threaded if possible
+(defn process-queue [queue handler config]
+  (when (pos? (count @queue))
+    (let [batch (take (:max-size config) @queue)]
+      (swap! queue (partial drop (count batch)))
+      (future (handler batch)))))
 
 
-;; when timer-start is nil
-;;  log current time
-
-;; put item on queue
-
-;; for each message
-;;  if time > timer-start + timeout || queue size >= max-size
-;;   process everything on the queue
-;;   set time-start to nil
-;;  else
-;;   put item on queue
+(defn create-timeout-handler [queue handler config]
+  (future (Thread/sleep (:timeout config))
+          (locking queue
+            (process-queue queue handler config))))
 
 
-(def config
-  {:max-size 5
-   :timeout 1000})
+(defn stream->batch [queue timeout-handler handler config message]
+  (locking queue
+    (swap! queue conj message)
+    (when (future-done? @timeout-handler)
+      (reset! timeout-handler (create-timeout-handler queue handler config)))
+    (when (= (:max-size config) (count @queue))
+      (process-queue queue handler config))))
 
 
-(def timeout-handler (atom (future)))
-(def queue (ref (list)))
+(defmacro defstream->batch
+  "Define a new stream->batch processor with max-size and timeout.
 
+   (defstream->batch message-processor
+      my-handler-fn
+      {:max-size 100 :timeout 1000})
 
-(defn process-queue [handler]
-  (dosync
-   (when (pos? (count @queue))
-     ;; could restrict to max-size, (take (:max-size config) @queue)
-     ;; but processing the queue completely protects against unforseen race
-     ;; conditions which should never happen
-     (let [batch @queue]
-       (alter queue (partial drop (:max-size config)))
-       (future (handler batch))))))
-
-
-(defn create-timeout-handler [handler]
-  (reset! timeout-handler
-          (future (Thread/sleep (:timeout config))
-                  (process-queue handler))))
-
-
-(defn stream->batch [handler message]
-  (dosync (alter queue conj message))
-  (when (future-done? @timeout-handler)
-    (create-timeout-handler handler))
-  (when (= (:max-size config) (count @queue))
-    (process-queue handler)))
-
-
-;; if no timeout future, create one
-;; if max-size reached, cancel timeout future
-
-;; (def a (future (Thread/sleep 10000)))
-;; (future-cancel a)
-;; (future-done? a)
-;; (future-cancelled? a)
-
-;; (def a (ref (list)))
-;; (dosync (alter a conj 2))
-;; (dosync (alter a (partial drop 1)))
+   (doseq [x (range 200)]
+     (message-processor x))"
+  [id handler config]
+  `(do
+     (def queue# (atom (list)))
+     (def timeout-handler# (atom (future)))
+     (def ~id
+       (partial stream->batch queue# timeout-handler# ~handler ~config))))
