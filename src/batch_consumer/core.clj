@@ -2,9 +2,6 @@
   (require [com.climate.claypoole :as cp]))
 
 
-(def threadpools (atom {}))
-
-
 (defn process-queue [threadpool queue handler options]
   (when (pos? (count @queue))
     (let [batch (take (:max-size options) @queue)]
@@ -30,8 +27,40 @@
       (process-queue threadpool queue handler options))))
 
 
-(defn shutdown [id]
-  (cp/shutdown (get @threadpools id)))
+(defn shutdown
+  "Permanently shuts down threadpool associated with given processor fn."
+  [processor-fn]
+  (cp/shutdown (:threadpool (meta processor-fn))))
+
+
+(defn stream->batch-processor-fn
+  "Wraps handler with stream->batch processor and attaches threadpool
+   as metadata."
+  [handler options]
+  (let [threadpool (cp/threadpool (:threads options))
+        queue (atom (list))
+        timeout-handler (atom (future))
+        processor-fn (partial stream->batch
+                              threadpool
+                              queue
+                              timeout-handler
+                              handler
+                              options)]
+    (with-meta processor-fn {:threadpool threadpool})))
+
+
+(defmacro with-stream->batch
+  "Create temporary binding wrapping the given handler function.
+   Requires a symbol for the handler function, so it must already be bound
+   by other means.
+
+   (with-stream->batch [tmp-proc {:max-size 5 :threads 2 :timeout 1000}]
+     (doseq [x (range 17)]
+       (tmp-proc x))"
+  [[handler options] & body]
+  `(let [~handler (stream->batch-processor-fn ~handler ~options)]
+     ~@body
+     (cp/shutdown (:threadpool (meta ~handler)))))
 
 
 (defmacro defstream->batch
@@ -49,29 +78,5 @@
    (doseq [x (range 250)]
      (message-processor x))"
   [id handler options]
-  `(let [threadpool# (cp/threadpool (:threads ~options))
-         queue# (atom (list))
-         timeout-handler# (atom (future))
-         ns-qualified-id# (symbol (name (ns-name *ns*)) (name '~id))]
-     (swap! threadpools assoc ns-qualified-id# threadpool#)
-     (def ~id
-       (partial stream->batch
-                threadpool#
-                queue#
-                timeout-handler#
-                ~handler
-                ~options))))
-
-
-(defmacro with-stream->batch [[handler options] & body]
-  `(let [threadpool# (cp/threadpool (:threads ~options))
-         queue# (atom (list))
-         timeout-handler# (atom (future))
-         ~handler (partial stream->batch
-                           threadpool#
-                           queue#
-                           timeout-handler#
-                           ~handler
-                           ~options)]
-     ~@body
-     (cp/shutdown threadpool#)))
+  `(let [processor-fn# (stream->batch-processor-fn ~handler ~options)]
+     (def ~id processor-fn#)))

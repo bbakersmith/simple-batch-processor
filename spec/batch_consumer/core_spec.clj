@@ -78,9 +78,9 @@
     (should= 5 (count @slow-handler-calls)))
 
   (it "should allow threadpools to be shut down"
-    (let [tp (get @threadpools `message-processor)]
+    (let [tp (:threadpool (meta message-processor))]
       (should= false (.isShutdown tp))
-      (shutdown `message-processor)
+      (shutdown message-processor)
       (should= true (.isShutdown tp))))
 
   (it "should allow temporary processors"
