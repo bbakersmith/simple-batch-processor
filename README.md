@@ -8,7 +8,7 @@ on both batch-size and timeout.
 
 ### Stream->Batch Function
 
-```
+```clojure
 (def message-processor 
   (stream->batch
     (fn [batch] (do-some-things batch))
@@ -20,7 +20,7 @@ on both batch-size and timeout.
 
 ### Def Var
 
-```
+```clojure
 (defstream->batch message-processor
   (fn [batch] (do-some-things batch))
   {:batch-size 5 :timeout 100 :threads 4})
@@ -31,7 +31,7 @@ on both batch-size and timeout.
 
 ### Temporary Scoped Binding
 
-```
+```clojure
 (with-stream->batch [tmp-proc (fn [batch] (do-some-things batch))
                      {:batch-size 5 :threads 2 :timeout 1000}]
   (doseq [x (range 17)]
@@ -41,6 +41,6 @@ on both batch-size and timeout.
 ## License
 
 Simple Batch Processor is released under the Apache License.
-See LICENSE.txt(LICENSE.txt) for complete license text.
+See [LICENSE.txt](LICENSE.txt) for complete license text.
 
 Copyright [2016] [Benjamin Baker-Smith]
