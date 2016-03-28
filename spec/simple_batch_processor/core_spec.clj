@@ -41,6 +41,21 @@
     (should= [[666] [777]]
              @handler-calls))
 
+  (it "should start timeout at time of last batch-size trigger"
+    (doseq [x (range 9)]
+      (message-processor x))
+    (Thread/sleep 75)
+    ;; triggering another batch-size should reset timeout
+    ;; to fire at 175 instead of 100
+    (doseq [x (range 5)]
+      (message-processor x))
+    (Thread/sleep 75)
+    ;; at 150 timeout should still not have fired
+    (should= 2 (count @handler-calls))
+    (Thread/sleep 50)
+    ;; by 200 it should have fired
+    (should= 3 (count @handler-calls)))
+
   (it "should be thread safe"
     (doseq [x (range 22)]
       (future (message-processor x)))
