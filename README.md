@@ -6,7 +6,9 @@ on both batch-size and timeout.
 
 ## Usage
 
-### stream->batch
+### Create Batch Processor Functions
+
+#### stream->batch
 
 Returns a batch processing function.
 
@@ -23,7 +25,7 @@ call `shutdown`.
   (message-processor x))
 ```
 
-### defstream->batch
+#### defstream->batch
 
 Defs a batch processing function in a var.
 
@@ -39,7 +41,7 @@ call `shutdown`.
   (message-processor x))
 ```
 
-### with-stream->batch
+#### with-stream->batch
 
 Temporary scoped binding for batch processing function,
 with automatic threadpool shutdown.
@@ -50,6 +52,13 @@ with automatic threadpool shutdown.
   (doseq [x (range 17)]
     (tmp-proc x)))
 ```
+
+### Utility Functions
+
+#### queue-size
+#### queue-contents
+#### purge-queue
+#### shutdown
 
 ## License
 
