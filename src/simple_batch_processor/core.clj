@@ -1,5 +1,5 @@
 (ns simple-batch-processor.core
-  (require [com.climate.claypoole :as cp]))
+  (:require [com.climate.claypoole :as cp]))
 
 
 (defn ^:private process-queue [threadpool queue handler options]
