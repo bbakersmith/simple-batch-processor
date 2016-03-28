@@ -5,6 +5,8 @@
             :url "http://www.apache.org/licenses/LICENSE-2.0"}
   :dependencies [[org.clojure/clojure "1.7.0-RC2"]
                  [com.climate/claypoole "1.1.2"]]
-  :profiles {:dev {:dependencies [[speclj "3.3.1"]]}}
+  :deploy-repositories [["releases" :clojars]]
+  :profiles {:dev {:dependencies [[speclj "3.3.1"]]}
+             :user {:signing {:gpg-key "bbakersmith@gmail.com"}}}
   :plugins [[speclj "3.3.1"]]
   :test-paths ["spec"])
