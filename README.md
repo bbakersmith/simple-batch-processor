@@ -37,3 +37,10 @@ on both batch-size and timeout.
   (doseq [x (range 17)]
     (tmp-proc x)))
 ```
+
+## License
+
+Simple Batch Processor is released under the Apache License.
+See LICENSE.txt(LICENSE.txt) for complete license text.
+
+Copyright [2016] [Benjamin Baker-Smith]

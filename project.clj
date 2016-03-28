@@ -1,8 +1,8 @@
 (defproject simple-batch-processor "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
-  :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
+  :description "A simple Clojure stream to batch processor."
+  :url "https://github.com/bbakersmith/simple-batch-processor"
+  :license {:name "Apache License"
+            :url "http://www.apache.org/licenses/LICENSE-2.0"}
   :dependencies [[org.clojure/clojure "1.7.0-RC2"]
                  [com.climate/claypoole "1.1.2"]]
   :profiles {:dev {:dependencies [[speclj "3.3.1"]]}}
