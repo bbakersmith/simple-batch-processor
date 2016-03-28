@@ -58,10 +58,10 @@ with automatic threadpool shutdown.
 ```clojure
 (require '[simple-batch-processor.core :refer [with-stream->batch]])
 
-(with-stream->batch [tmp-proc (fn [batch] (do-some-things batch))
-                     {:batch-size 5 :threads 2 :timeout 1000}]
-  (doseq [x (range 17)]
-    (tmp-proc x)))
+(with-stream->batch [tmp-processor (fn [batch] (do-some-things batch))
+                     {:batch-size 5 :timeout 100 :threads 4})]
+  (doseq [x (range 9001)]
+    (tmp-processor x)))
 ```
 
 ### Utility Functions
