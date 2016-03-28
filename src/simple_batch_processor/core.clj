@@ -2,21 +2,21 @@
   (require [com.climate.claypoole :as cp]))
 
 
-(defn process-queue [threadpool queue handler options]
+(defn ^:private process-queue [threadpool queue handler options]
   (when (pos? (count @queue))
     (let [batch (take (:batch-size options) @queue)]
       (swap! queue (partial drop (count batch)))
       (cp/future threadpool (handler batch)))))
 
 
-(defn create-timeout-handler [threadpool queue handler options]
+(defn ^:private create-timeout-handler [threadpool queue handler options]
   (future
     (Thread/sleep (:timeout options))
     (locking queue
       (process-queue threadpool queue handler options))))
 
 
-(defn stream->batch-processor-fn
+(defn ^:private stream->batch-processor-fn
   [threadpool queue timeout-handler handler options message]
   (locking queue
     (swap! queue conj message)
