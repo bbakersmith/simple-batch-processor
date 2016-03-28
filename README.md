@@ -4,6 +4,8 @@ A simple Clojure stream to batch processor. Allows a restricted number of
 batch handler threads to be executed against a stream of incoming messages
 on both batch-size and timeout.
 
+![Simple Batch Processor Diagram](/doc/simple-batch-processor-diagram.png)
+
 ## Usage
 
 ### Create Batch Processor Functions
