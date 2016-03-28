@@ -27,7 +27,7 @@ call `shutdown`.
 
 #### defstream->batch
 
-Defs a batch processing function in a var.
+Defs a batch processing function to a var.
 
 If you want to dispose of the associated threadpool, you must manually
 call `shutdown`.

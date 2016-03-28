@@ -55,8 +55,7 @@
 
 
 (defn stream->batch
-  "Wraps handler with stream->batch processor and attaches threadpool
-   as metadata.
+  "Returns a batch processing function.
 
    options
       :batch-size   <int> max batch count
@@ -77,9 +76,8 @@
 
 
 (defmacro with-stream->batch
-  "Create temporary binding wrapping the given handler function.
-   Requires a symbol for the handler function, so it must already be bound
-   by other means.
+  "Temporary scoped binding for batch processing function,
+   with automatic threadpool shutdown.
 
    options
       :batch-size   <int> max batch count
@@ -97,7 +95,7 @@
 
 
 (defmacro defstream->batch
-  "Define a new stream->batch processor with batch-size and timeout.
+  "Defs a batch processing function to a var.
 
    options
       :batch-size   <int> max batch count
