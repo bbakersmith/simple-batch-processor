@@ -1,10 +1,10 @@
-(ns batch-consumer.core
+(ns simple-batch-processor.core
   (require [com.climate.claypoole :as cp]))
 
 
 (defn process-queue [threadpool queue handler options]
   (when (pos? (count @queue))
-    (let [batch (take (:max-size options) @queue)]
+    (let [batch (take (:batch-size options) @queue)]
       (swap! queue (partial drop (count batch)))
       (cp/future threadpool (handler batch)))))
 
@@ -22,7 +22,7 @@
     (when (future-done? @timeout-handler)
       (reset! timeout-handler
               (create-timeout-handler threadpool queue handler options)))
-    (when (= (:max-size options) (count @queue))
+    (when (= (:batch-size options) (count @queue))
       (future-cancel @timeout-handler)
       (process-queue threadpool queue handler options))))
 
@@ -54,7 +54,7 @@
    Requires a symbol for the handler function, so it must already be bound
    by other means.
 
-   (with-stream->batch [tmp-proc {:max-size 5 :threads 2 :timeout 1000}]
+   (with-stream->batch [tmp-proc {:batch-size 5 :threads 2 :timeout 1000}]
      (doseq [x (range 17)]
        (tmp-proc x))"
   [[handler options] & body]
@@ -64,16 +64,16 @@
 
 
 (defmacro defstream->batch
-  "Define a new stream->batch processor with max-size and timeout.
+  "Define a new stream->batch processor with batch-size and timeout.
 
    options
-      :max-size     <int> max batch count
+      :batch-size     <int> max batch count
       :threads      <int> max handler threads
       :timeout      <int> timeout in ms
 
    (defstream->batch message-processor
       my-handler-fn
-      {:max-size 100 :threads 2 :timeout 1000})
+      {:batch-size 100 :threads 2 :timeout 1000})
 
    (doseq [x (range 250)]
      (message-processor x))"

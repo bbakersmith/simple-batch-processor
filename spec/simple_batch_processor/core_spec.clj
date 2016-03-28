@@ -1,6 +1,6 @@
-(ns batch-consumer.core-spec
+(ns simple-batch-processor.core-spec
   (:require [speclj.core :refer :all]
-            [batch-consumer.core :refer :all]))
+            [simple-batch-processor.core :refer :all]))
 
 
 (describe "stream->batch"
@@ -10,19 +10,19 @@
     (def handler-calls (atom []))
     (defstream->batch message-processor
       (fn [batch] (swap! handler-calls conj batch))
-      {:max-size 5 :timeout 100 :threads 4})
+      {:batch-size 5 :timeout 100 :threads 4})
 
     (def alternate-handler-calls (atom []))
     (defstream->batch alternate-processor
       (fn [batch] (swap! alternate-handler-calls conj batch))
-      {:max-size 3 :timeout 100 :threads 4})
+      {:batch-size 3 :timeout 100 :threads 4})
 
     (def slow-handler-calls (atom []))
     (defstream->batch slow-processor
       (fn [batch] (Thread/sleep 100) (swap! slow-handler-calls conj batch))
-      {:max-size 5 :timeout 200 :threads 2}))
+      {:batch-size 5 :timeout 200 :threads 2}))
 
-  (it "should execute a batch when queue reaches max-size"
+  (it "should execute a batch when queue reaches batch-size"
     (doseq [x (range 20)]
       (message-processor x))
     (Thread/sleep 200)
@@ -86,7 +86,7 @@
   (it "should allow temporary processors"
     (let [tmp-handler-calls (atom [])
           tmp-proc (fn [batch] (swap! tmp-handler-calls conj batch))]
-      (with-stream->batch [tmp-proc {:max-size 5 :threads 2 :timeout 1000}]
+      (with-stream->batch [tmp-proc {:batch-size 5 :threads 2 :timeout 1000}]
         (doseq [x (range 15)]
           (tmp-proc x)))
       (Thread/sleep 200)
