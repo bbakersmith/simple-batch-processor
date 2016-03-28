@@ -1,4 +1,4 @@
-(defproject simple-batch-processor "0.1.0-SNAPSHOT"
+(defproject bbakersmith/simple-batch-processor "1.0.0"
   :description "A simple Clojure stream to batch processor."
   :url "https://github.com/bbakersmith/simple-batch-processor"
   :license {:name "Apache License"
