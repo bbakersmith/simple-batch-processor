@@ -99,10 +99,38 @@
       (should= true (.isShutdown tp))))
 
   (it "should allow temporary processors"
-    (let [tmp-handler-calls (atom [])
-          tmp-proc (fn [batch] (swap! tmp-handler-calls conj batch))]
-      (with-stream->batch [tmp-proc {:batch-size 5 :threads 2 :timeout 1000}]
+    (let [tmp-handler-calls (atom [])]
+      (with-stream->batch [tmp-proc
+                           (fn [batch] (swap! tmp-handler-calls conj batch))
+                           {:batch-size 5 :threads 2 :timeout 1000}]
         (doseq [x (range 15)]
           (tmp-proc x)))
       (Thread/sleep 200)
-      (should= 3 (count @tmp-handler-calls)))))
+      (should= 3 (count @tmp-handler-calls))))
+
+  (it "should return the queue size"
+    (message-processor 666)
+    (should= 1 (queue-size message-processor))
+    (message-processor 777)
+    (message-processor 888)
+    (should= 3 (queue-size message-processor)))
+
+  (it "should return the queue contents"
+    (doseq [x ["a" "b" "c" "d"]]
+      (message-processor x))
+    (should= ["a" "b" "c" "d"]
+             (sort (queue-contents message-processor))))
+
+  (it "should purge the queue"
+    (doseq [x ["a" "b" "c" "d"]]
+      (message-processor x))
+    (purge-queue message-processor)
+    (should= [] (queue-contents message-processor))
+    ;; and still be able to continue adding
+    (doseq [x ["x" "y" "z"]]
+      (message-processor x))
+    (should= ["x" "y" "z"]
+             (sort (queue-contents message-processor)))
+    ;; and purge again
+    (purge-queue message-processor)
+    (should= [] (queue-contents message-processor))))

@@ -16,7 +16,8 @@
       (process-queue threadpool queue handler options))))
 
 
-(defn stream->batch [threadpool queue timeout-handler handler options message]
+(defn stream->batch-processor-fn
+  [threadpool queue timeout-handler handler options message]
   (locking queue
     (swap! queue conj message)
     (when (future-done? @timeout-handler)
@@ -27,26 +28,52 @@
       (process-queue threadpool queue handler options))))
 
 
+(defn queue-contents
+  "Returns the current contents of the queue."
+  [processor-fn]
+  (deref (:queue (meta processor-fn))))
+
+
+(defn queue-size
+  "Returns the current queue size"
+  [processor-fn]
+  (count (queue-contents processor-fn)))
+
+
+(defn purge-queue
+  "Remove all items from the queue without processing."
+  [processor-fn]
+  (let [queue (:queue (meta processor-fn))]
+    (locking queue
+      (reset! queue (list)))))
+
+
 (defn shutdown
   "Permanently shuts down threadpool associated with given processor fn."
   [processor-fn]
   (cp/shutdown (:threadpool (meta processor-fn))))
 
 
-(defn stream->batch-processor-fn
+(defn stream->batch
   "Wraps handler with stream->batch processor and attaches threadpool
-   as metadata."
+   as metadata.
+
+   options
+      :batch-size   <int> max batch count
+      :threads      <int> max handler threads
+      :timeout      <int> timeout in ms"
   [handler options]
   (let [threadpool (cp/threadpool (:threads options))
         queue (atom (list))
         timeout-handler (atom (future))
-        processor-fn (partial stream->batch
+        processor-fn (partial stream->batch-processor-fn
                               threadpool
                               queue
                               timeout-handler
                               handler
                               options)]
-    (with-meta processor-fn {:threadpool threadpool})))
+    (with-meta processor-fn {:threadpool threadpool
+                             :queue queue})))
 
 
 (defmacro with-stream->batch
@@ -54,29 +81,35 @@
    Requires a symbol for the handler function, so it must already be bound
    by other means.
 
-   (with-stream->batch [tmp-proc {:batch-size 5 :threads 2 :timeout 1000}]
+   options
+      :batch-size   <int> max batch count
+      :threads      <int> max handler threads
+      :timeout      <int> timeout in ms
+
+   (with-stream->batch [tmp-proc (fn [batch] (do-something batch))
+                        {:batch-size 5 :threads 2 :timeout 1000}]
      (doseq [x (range 17)]
        (tmp-proc x))"
-  [[handler options] & body]
-  `(let [~handler (stream->batch-processor-fn ~handler ~options)]
+  [[id handler options] & body]
+  `(let [~id (stream->batch ~handler ~options)]
      ~@body
-     (cp/shutdown (:threadpool (meta ~handler)))))
+     (cp/shutdown (:threadpool (meta ~id)))))
 
 
 (defmacro defstream->batch
   "Define a new stream->batch processor with batch-size and timeout.
 
    options
-      :batch-size     <int> max batch count
+      :batch-size   <int> max batch count
       :threads      <int> max handler threads
       :timeout      <int> timeout in ms
 
    (defstream->batch message-processor
-      my-handler-fn
+      (fn [batch] (do-something batch))
       {:batch-size 100 :threads 2 :timeout 1000})
 
    (doseq [x (range 250)]
      (message-processor x))"
   [id handler options]
-  `(let [processor-fn# (stream->batch-processor-fn ~handler ~options)]
+  `(let [processor-fn# (stream->batch ~handler ~options)]
      (def ~id processor-fn#)))
