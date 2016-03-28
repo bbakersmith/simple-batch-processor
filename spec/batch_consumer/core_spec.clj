@@ -10,12 +10,17 @@
     (def handler-calls (atom []))
     (defstream->batch message-processor
       (fn [batch] (swap! handler-calls conj batch))
-      {:max-size 5 :timeout 100})
+      {:max-size 5 :timeout 100 :threads 4})
 
     (def alternate-handler-calls (atom []))
     (defstream->batch alternate-processor
       (fn [batch] (swap! alternate-handler-calls conj batch))
-      {:max-size 3 :timeout 100}))
+      {:max-size 3 :timeout 100 :threads 4})
+
+    (def slow-handler-calls (atom []))
+    (defstream->batch slow-processor
+      (fn [batch] (Thread/sleep 100) (swap! slow-handler-calls conj batch))
+      {:max-size 5 :timeout 200 :threads 2}))
 
   (it "should execute a batch when queue reaches max-size"
     (doseq [x (range 20)]
@@ -56,4 +61,33 @@
              (sort (flatten @handler-calls)))
     (should= 4 (count @alternate-handler-calls))
     (should= (into [] (range 50 60))
-             (sort (flatten @alternate-handler-calls)))))
+             (sort (flatten @alternate-handler-calls))))
+
+  (it "should limit the number of threads"
+    (doseq [x (range 22)]
+      (slow-processor x))
+    ;; with handler threads limited to 2 and blocking for 100ms,
+    ;; after 150ms only 2 of 5 should have finished
+    (Thread/sleep 150)
+    (should= 2 (count @slow-handler-calls))
+    ;; after 250ms another 2 should have finished
+    (Thread/sleep 100)
+    (should= 4 (count @slow-handler-calls))
+    ;; after 450ms the 200ms timeout should have completed the remainder
+    (Thread/sleep 200)
+    (should= 5 (count @slow-handler-calls)))
+
+  (it "should allow threadpools to be shut down"
+    (let [tp (get @threadpools `message-processor)]
+      (should= false (.isShutdown tp))
+      (shutdown `message-processor)
+      (should= true (.isShutdown tp))))
+
+  (it "should allow temporary processors"
+    (let [tmp-handler-calls (atom [])
+          tmp-proc (fn [batch] (swap! tmp-handler-calls conj batch))]
+      (with-stream->batch [tmp-proc {:max-size 5 :threads 2 :timeout 1000}]
+        (doseq [x (range 15)]
+          (tmp-proc x)))
+      (Thread/sleep 200)
+      (should= 3 (count @tmp-handler-calls)))))
