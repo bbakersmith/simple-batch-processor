@@ -4,7 +4,10 @@ A simple Clojure stream to batch processor. Allows a restricted number of
 batch handler threads to be executed against a stream of incoming messages
 on both batch-size and timeout.
 
-![Simple Batch Processor Diagram](/doc/simple-batch-processor-diagram.png)
+Simple Batch Processor may be installed from the Clojars repository.
+```clojure
+[bbakersmith/simple-batch-processor "1.0.0"]
+```
 
 ## Usage
 
@@ -18,6 +21,8 @@ If you want to dispose of the associated threadpool, you must manually
 call `shutdown`.
 
 ```clojure
+(require '[simple-batch-processor.core :refer [stream->batch]])
+
 (def message-processor 
   (stream->batch
     (fn [batch] (do-some-things batch))
@@ -35,6 +40,8 @@ If you want to dispose of the associated threadpool, you must manually
 call `shutdown`.
 
 ```clojure
+(require '[simple-batch-processor.core :refer [defstream->batch]])
+
 (defstream->batch message-processor
   (fn [batch] (do-some-things batch))
   {:batch-size 5 :timeout 100 :threads 4})
@@ -49,6 +56,8 @@ Temporary scoped binding for batch processing function,
 with automatic threadpool shutdown.
 
 ```clojure
+(require '[simple-batch-processor.core :refer [with-stream->batch]])
+
 (with-stream->batch [tmp-proc (fn [batch] (do-some-things batch))
                      {:batch-size 5 :threads 2 :timeout 1000}]
   (doseq [x (range 17)]
@@ -61,6 +70,10 @@ with automatic threadpool shutdown.
 #### queue-contents
 #### purge-queue
 #### shutdown
+
+## Design
+
+![Simple Batch Processor Diagram](/doc/simple-batch-processor-diagram.png)
 
 ## License
 
