@@ -92,22 +92,3 @@
   `(let [~id (stream->batch ~handler ~options)]
      ~@body
      (cp/shutdown (:threadpool (meta ~id)))))
-
-
-(defmacro defstream->batch
-  "Defs a batch processing function to a var.
-
-   options
-      :batch-size   <int> max batch count
-      :threads      <int> max handler threads
-      :timeout      <int> timeout in ms
-
-   (defstream->batch message-processor
-      (fn [batch] (do-something batch))
-      {:batch-size 100 :threads 2 :timeout 1000})
-
-   (doseq [x (range 250)]
-     (message-processor x))"
-  [id handler options]
-  `(let [processor-fn# (stream->batch ~handler ~options)]
-     (def ~id processor-fn#)))

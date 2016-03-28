@@ -6,7 +6,7 @@ on both batch-size and timeout.
 
 Simple Batch Processor may be installed from the Clojars repository.
 ```clojure
-[bbakersmith/simple-batch-processor "1.0.0"]
+[bbakersmith/simple-batch-processor "1.1.0"]
 ```
 
 ## Usage
@@ -27,24 +27,6 @@ call `shutdown`.
   (stream->batch
     (fn [batch] (do-some-things batch))
     {:batch-size 5 :timeout 100 :threads 4}))
-
-(doseq [x (range 9001)]
-  (message-processor x))
-```
-
-#### defstream->batch
-
-Defs a batch processing function to a var.
-
-If you want to dispose of the associated threadpool, you must manually
-call `shutdown`.
-
-```clojure
-(require '[simple-batch-processor.core :refer [defstream->batch]])
-
-(defstream->batch message-processor
-  (fn [batch] (do-some-things batch))
-  {:batch-size 5 :timeout 100 :threads 4})
 
 (doseq [x (range 9001)]
   (message-processor x))

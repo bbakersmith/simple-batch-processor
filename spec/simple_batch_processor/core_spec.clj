@@ -8,19 +8,22 @@
 
   (before
     (def handler-calls (atom []))
-    (defstream->batch message-processor
-      (fn [batch] (swap! handler-calls conj batch))
-      {:batch-size 5 :timeout 100 :threads 4})
+    (def message-processor
+      (stream->batch
+       (fn [batch] (swap! handler-calls conj batch))
+       {:batch-size 5 :timeout 100 :threads 4}))
 
     (def alternate-handler-calls (atom []))
-    (defstream->batch alternate-processor
-      (fn [batch] (swap! alternate-handler-calls conj batch))
-      {:batch-size 3 :timeout 100 :threads 4})
+    (def alternate-processor
+      (stream->batch
+       (fn [batch] (swap! alternate-handler-calls conj batch))
+       {:batch-size 3 :timeout 100 :threads 4}))
 
     (def slow-handler-calls (atom []))
-    (defstream->batch slow-processor
-      (fn [batch] (Thread/sleep 100) (swap! slow-handler-calls conj batch))
-      {:batch-size 5 :timeout 200 :threads 2}))
+    (def slow-processor
+      (stream->batch
+       (fn [batch] (Thread/sleep 100) (swap! slow-handler-calls conj batch))
+       {:batch-size 5 :timeout 200 :threads 2})))
 
   (it "should execute a batch when queue reaches batch-size"
     (doseq [x (range 20)]
