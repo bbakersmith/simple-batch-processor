@@ -6,7 +6,12 @@ on both batch-size and timeout.
 
 ## Usage
 
-### Stream->Batch Function
+### stream->batch
+
+Returns a batch processing function.
+
+If you want to dispose of the associated threadpool, you must manually
+call `shutdown`.
 
 ```clojure
 (def message-processor 
@@ -18,7 +23,12 @@ on both batch-size and timeout.
   (message-processor x))
 ```
 
-### Def Var
+### defstream->batch
+
+Defs a batch processing function in a var.
+
+If you want to dispose of the associated threadpool, you must manually
+call `shutdown`.
 
 ```clojure
 (defstream->batch message-processor
@@ -29,7 +39,10 @@ on both batch-size and timeout.
   (message-processor x))
 ```
 
-### Temporary Scoped Binding
+### with-stream->batch
+
+Temporary scoped binding for batch processing function,
+with automatic threadpool shutdown.
 
 ```clojure
 (with-stream->batch [tmp-proc (fn [batch] (do-some-things batch))
