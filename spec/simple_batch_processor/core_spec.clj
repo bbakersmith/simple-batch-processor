@@ -29,9 +29,9 @@
     (doseq [processor [message-processor
                        alternate-processor
                        slow-processor]]
-    (future-cancel (deref (:timeout-handler (meta processor))))
-    (purge-queue processor)
-    (shutdown processor)))
+      (future-cancel (deref (:timeout-handler (meta processor))))
+      (purge-queue processor)
+      (shutdown processor)))
 
   (it "should execute a batch when queue reaches batch-size"
     (doseq [x (range 20)]
