@@ -79,22 +79,3 @@
     (with-meta processor-fn {:threadpool threadpool
                              :timeout-handler timeout-handler
                              :queue queue})))
-
-
-(defmacro with-stream->batch
-  "Temporary scoped binding for batch processing function,
-   with automatic threadpool shutdown.
-
-   options
-      :batch-size   <int> max batch count
-      :threads      <int> max handler threads
-      :timeout      <int> timeout in ms
-
-   (with-stream->batch [tmp-proc (fn [batch] (do-something batch))
-                        {:batch-size 5 :threads 2 :timeout 1000}]
-     (doseq [x (range 17)]
-       (tmp-proc x))"
-  [[id handler options] & body]
-  `(let [~id (stream->batch ~handler ~options)]
-     ~@body
-     (cp/shutdown (:threadpool (meta ~id)))))

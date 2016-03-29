@@ -110,14 +110,16 @@
       (should= true (.isShutdown tp))))
 
   (it "should allow temporary processors"
-    (let [tmp-handler-calls (atom [])]
-      (with-stream->batch [tmp-proc
-                           (fn [batch] (swap! tmp-handler-calls conj batch))
-                           {:batch-size 5 :threads 2 :timeout 1000}]
-        (doseq [x (range 15)]
-          (tmp-proc x)))
+    (let [tmp-handler-calls (atom [])
+          tmp-proc (stream->batch
+                    (fn [batch] (swap! tmp-handler-calls conj batch))
+                    {:batch-size 5 :threads 2 :timeout 1000})]
+      (doseq [x (range 15)]
+        (tmp-proc x))
       (Thread/sleep 200)
-      (should= 3 (count @tmp-handler-calls))))
+      (should= 3 (count @tmp-handler-calls))
+      (purge-queue tmp-proc)
+      (future-cancel (deref (:timeout-handler (meta tmp-proc))))))
 
   (it "should return the queue size"
     (message-processor 666)

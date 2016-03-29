@@ -32,20 +32,6 @@ call `shutdown`.
   (message-processor x))
 ```
 
-#### with-stream->batch
-
-Temporary scoped binding for batch processing function,
-with automatic threadpool shutdown.
-
-```clojure
-(require '[simple-batch-processor.core :refer [with-stream->batch]])
-
-(with-stream->batch [tmp-processor (fn [batch] (do-some-things batch))
-                     {:batch-size 5 :timeout 100 :threads 4})]
-  (doseq [x (range 9001)]
-    (tmp-processor x)))
-```
-
 ### Utility Functions
 
 #### queue-size
