@@ -1,51 +1,56 @@
 (ns simple-batch-processor.core
-  (:require [com.climate.claypoole :as cp]))
+  (:require [com.climate.claypoole :as cp])
+  (:import java.util.concurrent.LinkedBlockingQueue))
 
 
 (defn ^:private process-queue [threadpool queue handler options]
-  (when (pos? (count @queue))
-    (let [batch (take (:batch-size options) @queue)]
-      (swap! queue (partial drop (count batch)))
+  (let [batch (java.util.Vector.)
+        _ (.drainTo queue batch (:batch-size options))
+        batch (into [] batch)]
+    (when (seq batch)
       (cp/future threadpool (handler batch)))))
 
 
-(defn ^:private create-timeout-handler [threadpool queue handler options]
-  (future
-    (Thread/sleep (:timeout options))
-    (locking queue
-      (process-queue threadpool queue handler options))))
+(defn ^:private create-timeout-handler
+  [threadpool queue timeout-handler handler options]
+  (swap!
+   timeout-handler
+   #(do
+      (future-cancel %)
+      (future
+       (Thread/sleep (:timeout options))
+       (locking queue
+         (process-queue threadpool queue handler options))))))
 
 
 (defn ^:private stream->batch-processor-fn
   [threadpool queue timeout-handler handler options message]
+  (.put queue message)
   (locking queue
-    (swap! queue conj message)
-    (when (future-done? @timeout-handler)
-      (reset! timeout-handler
-              (create-timeout-handler threadpool queue handler options)))
-    (when (= (:batch-size options) (count @queue))
+    (when (>= (.size queue) (:batch-size options))
       (future-cancel @timeout-handler)
-      (process-queue threadpool queue handler options))))
+      (process-queue threadpool queue handler options)))
+  (when (future-done? @timeout-handler)
+    (create-timeout-handler
+     threadpool queue timeout-handler handler options)))
 
 
 (defn queue-contents
   "Returns the current contents of the queue."
   [processor-fn]
-  (deref (:queue (meta processor-fn))))
+  (into [] (.toArray (:queue (meta processor-fn)))))
 
 
 (defn queue-size
   "Returns the current queue size"
   [processor-fn]
-  (count (queue-contents processor-fn)))
+  (.size (:queue (meta processor-fn))))
 
 
 (defn purge-queue
   "Remove all items from the queue without processing."
   [processor-fn]
-  (let [queue (:queue (meta processor-fn))]
-    (locking queue
-      (reset! queue (list)))))
+  (.clear (:queue (meta processor-fn))))
 
 
 (defn shutdown
@@ -63,7 +68,7 @@
       :timeout      <int> timeout in ms"
   [handler options]
   (let [threadpool (cp/threadpool (:threads options))
-        queue (atom (list))
+        queue (LinkedBlockingQueue.)
         timeout-handler (atom (future))
         processor-fn (partial stream->batch-processor-fn
                               threadpool
@@ -72,6 +77,7 @@
                               handler
                               options)]
     (with-meta processor-fn {:threadpool threadpool
+                             :timeout-handler timeout-handler
                              :queue queue})))
 
 
