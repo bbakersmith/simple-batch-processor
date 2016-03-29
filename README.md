@@ -6,7 +6,7 @@ on both batch-size and timeout.
 
 Simple Batch Processor may be installed from the Clojars repository.
 ```clojure
-[bbakersmith/simple-batch-processor "1.1.0"]
+[bbakersmith/simple-batch-processor "2.0.0"]
 ```
 
 ## Usage
@@ -23,7 +23,7 @@ call `shutdown`.
 ```clojure
 (require '[simple-batch-processor.core :refer [stream->batch]])
 
-(def message-processor 
+(def message-processor
   (stream->batch
     (fn [batch] (do-some-things batch))
     {:batch-size 5 :timeout 100 :threads 4}))
